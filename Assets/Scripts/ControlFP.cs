@@ -13,9 +13,9 @@ public class ControlFP : MonoBehaviour
     public float moveSpeed;
     public float sprintSpeed;
     public float jumpForce; 
-    private bool grounded;
+
+    private float currentOrbitGravity;
     private float currentMoveSpeed;
-    public float currentOrbitGravity; 
 
     //Gravity//
     public float hoverGravity;
@@ -27,13 +27,10 @@ public class ControlFP : MonoBehaviour
     public GameObject myCamera;
     public GameObject orbitPoint;
     public LayerMask globeMask;
-    public GameObject activeBuilding;
 
     //Enums// 
     public GravityMode GMD;
-    public GravityType GTP;
     public enum GravityMode { Grounded, Floating, FloatToGround }
-    public enum GravityType { Flat, Rounded }
 
     //Core Functions// 
     public void CameraRotation()
@@ -62,58 +59,17 @@ public class ControlFP : MonoBehaviour
     }
     public void OrbitalPull()
     {
-        //Rotate Controller To Center// 
+        //Inward Rotation To Core// 
         Vector3 targetDir = (gameObject.transform.position - orbitPoint.transform.position).normalized;
 
-        //Normal Faux Movement Applies// 
+        //Normal Spherical Movement Applies// 
         if (GMD == GravityMode.Grounded)
         {
-            //Ray From Bottom of Controller//
-            RaycastHit hit; 
-            bool foundGround = Physics.Raycast(gameObject.transform.position, -gameObject.transform.up, out hit, Mathf.Infinity, globeMask);
-
-            //--------Flat Surface vs Round Surface Gravity--------//
-
-            //Are you aligned with a planet? 
-            if(foundGround == true)
-            {
-                //Bind to a flat surface// 
-                if (hit.collider.tag == "FlatSurface")
-                {
-                    GTP = GravityType.Flat;
-                    activeBuilding = hit.collider.gameObject;
-                }
-                //Normal Spherical Gravity// 
-                else if (hit.collider.tag != "FlatSurface")
-                {
-                    GTP = GravityType.Rounded;
-                    activeBuilding = null;
-                }
-            }
-            //Not Aligned. Go to Spherical Gravity// 
-            else
-            {
-                GTP = GravityType.Rounded;
-                activeBuilding = null;
-            }
-
-            //----------------Rotate Towards Orbit Point--------------//
-
-            if (GTP == GravityType.Flat)
-            {
-                gameObject.transform.rotation = Quaternion.FromToRotation(gameObject.transform.up, activeBuilding.transform.up) * gameObject.transform.rotation;
-            }
-            else if(GTP == GravityType.Rounded)
-            {
-                gameObject.transform.rotation = Quaternion.FromToRotation(gameObject.transform.up, targetDir) * gameObject.transform.rotation;
-            }
-
-            //Move Towards Orbit Point// 
+            gameObject.transform.rotation = Quaternion.FromToRotation(gameObject.transform.up, targetDir) * gameObject.transform.rotation;
             transform.Translate(new Vector3(0, -hoverGravity * Time.deltaTime, 0));
-
         }
 
-        //Move Towards A new planet -- No extra rotations//
+        //Move Towards A new planet -- Movement Only No Rotation//
         else if (GMD == GravityMode.Floating)
         {
             transform.Translate
@@ -124,7 +80,7 @@ public class ControlFP : MonoBehaviour
             );
         }
         
-        //About to hit ground -- Rotate towards Planet// 
+        //About to hit ground -- Rotate Feet down// 
         else if (GMD == GravityMode.FloatToGround)
         {
             gameObject.transform.rotation = Quaternion.Lerp(gameObject.transform.rotation, Quaternion.FromToRotation(gameObject.transform.up, targetDir) * gameObject.transform.rotation, 1f * Time.deltaTime);
@@ -140,7 +96,7 @@ public class ControlFP : MonoBehaviour
             RaycastHit hit;
             Debug.DrawRay(myCamera.transform.position, myCamera.transform.forward * 1000f, Color.red, 2f);
 
-            //Note - "globe mask" is used to avoid hitting trees and things on the planet// 
+            //Note - "globe mask" is used to avoid hitting tree colliders and things on the planet// 
             if (Physics.Raycast(myCamera.transform.position, myCamera.transform.forward, out hit, Mathf.Infinity, globeMask))
             {
                 if (hit.collider.tag == "Globe")
@@ -148,7 +104,7 @@ public class ControlFP : MonoBehaviour
                     //Hit a planet. Switch your orbit point//
                     orbitPoint = hit.collider.gameObject;
 
-                    //Ghost mode (A coroutine that handles smooth accelleration and deceleration towards planet)// 
+                    //Ghost mode (A coroutine that coordinates smooth accelleration and deceleration towards planet)// 
                     StartCoroutine(GhostMode());
                 }
             }
@@ -167,7 +123,7 @@ public class ControlFP : MonoBehaviour
             float planetRadius = orbitPoint.transform.localScale.y;
             float planetAtmosphere = orbitPoint.transform.localScale.y * 2.5f;
 
-            //Go to maximum gravity//
+            //Accelerate to maximum gravity//
             while (Vector3.Distance(orbitPoint.transform.position, gameObject.transform.position) > (planetRadius + planetAtmosphere))
             {
                 yield return new WaitForSeconds(.1f);
@@ -209,9 +165,7 @@ public class ControlFP : MonoBehaviour
     //Runtime Functions// 
     private void Awake()
     {
-        rb = gameObject.GetComponent<Rigidbody>();
         GMD = GravityMode.Grounded;
-        grounded = true;
     }
     private void Update()
     {

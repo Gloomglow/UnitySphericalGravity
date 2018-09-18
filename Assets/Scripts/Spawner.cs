@@ -38,6 +38,9 @@ public class Spawner : MonoBehaviour
         //Spawn And Rotate into Place// 
         GameObject addSpawn = Instantiate(spawnPrefabs[prefabIND], spawnPoint, new Quaternion(0,0,0,0));
         addSpawn.transform.rotation = Quaternion.FromToRotation(addSpawn.transform.up, spawnRotation) * addSpawn.transform.rotation;
+
+        //Parent to Globe//
+        addSpawn.transform.parent = activeGlobes[globeIND].transform;
     }
 
 
