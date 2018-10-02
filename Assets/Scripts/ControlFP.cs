@@ -12,25 +12,21 @@ public class ControlFP : MonoBehaviour
     //Controller Movement//
     public float moveSpeed;
     public float sprintSpeed;
-    public float jumpForce; 
-
-    private float currentOrbitGravity;
+    public float jumpForce;
+    public bool isGrounded; 
     private float currentMoveSpeed;
 
     //Gravity//
     public float hoverGravity;
-    public float orbitGravity; 
+    public float orbitGravity;
+    private float currentOrbitGravity;
+    public float gravityLetoff; 
 
     //Objects & Components//
     public Collider col;
     public Rigidbody rb;
     public GameObject myCamera;
     public GameObject orbitPoint;
-    public LayerMask globeMask;
-
-    //Enums// 
-    public GravityMode GMD;
-    public enum GravityMode { Grounded, Floating, FloatToGround }
 
     //Core Functions// 
     public void CameraRotation()
@@ -43,7 +39,7 @@ public class ControlFP : MonoBehaviour
     }
     public void ControllerMovement()
     {
-        if (GMD == GravityMode.Grounded)
+        if (isGrounded)
         {
             //Sprinting// 
             if (Input.GetButton("Shift")){ currentMoveSpeed = sprintSpeed; } else { currentMoveSpeed = moveSpeed; }
@@ -52,126 +48,105 @@ public class ControlFP : MonoBehaviour
             float addJumpForce = 0f; 
             if (Input.GetButton("Jump")){ addJumpForce = jumpForce; }
 
-            //Final Movement//
-            Vector3 moveDir = new Vector3(Input.GetAxisRaw("Horizontal") * currentMoveSpeed * Time.deltaTime, addJumpForce * Time.deltaTime, Input.GetAxisRaw("Vertical") * moveSpeed * Time.deltaTime);
+            //Flat Direction//
+            Vector3 moveDir = new Vector3(
+            Input.GetAxisRaw("Horizontal") * currentMoveSpeed * Time.deltaTime,
+            addJumpForce * Time.deltaTime, 
+            Input.GetAxisRaw("Vertical") * currentMoveSpeed * Time.deltaTime);
+
+            //Translate//
             transform.Translate(moveDir * currentMoveSpeed);
         }
     }
+
     public void OrbitalPull()
     {
         //Inward Rotation To Core// 
         Vector3 targetDir = (gameObject.transform.position - orbitPoint.transform.position).normalized;
 
         //Normal Spherical Movement Applies// 
-        if (GMD == GravityMode.Grounded)
+        if (isGrounded)
         {
-            gameObject.transform.rotation = Quaternion.FromToRotation(gameObject.transform.up, targetDir) * gameObject.transform.rotation;
-            transform.Translate(new Vector3(0, -hoverGravity * Time.deltaTime, 0));
-        }
+            gameObject.transform.rotation = Quaternion.FromToRotation(gameObject.transform.up, targetDir) * gameObject.transform.rotation;      
 
-        //Move Towards A new planet -- Movement Only No Rotation//
-        else if (GMD == GravityMode.Floating)
-        {
-            transform.Translate
-            (
-                (-targetDir.x * Time.deltaTime * orbitGravity),
-                (-targetDir.y * Time.deltaTime * orbitGravity),
-                (-targetDir.z * Time.deltaTime * orbitGravity), Space.World
-            );
-        }
-        
-        //About to hit ground -- Rotate Feet down// 
-        else if (GMD == GravityMode.FloatToGround)
-        {
-            gameObject.transform.rotation = Quaternion.Lerp(gameObject.transform.rotation, Quaternion.FromToRotation(gameObject.transform.up, targetDir) * gameObject.transform.rotation, 1f * Time.deltaTime);
-            transform.Translate(new Vector3(0, -hoverGravity * Time.deltaTime, 0));
-        }
-    }
-    public void PlanetTransfer()
-    {
-        //If On Solid Ground, Can change planets// 
-        if (Input.GetKeyDown(KeyCode.Alpha1) && GMD == GravityMode.Grounded)
-        {
-            //Shoot a Raycast forward (from center of camera)// 
-            RaycastHit hit;
-            Debug.DrawRay(myCamera.transform.position, myCamera.transform.forward * 1000f, Color.red, 2f);
-
-            //Note - "globe mask" is used to avoid hitting tree colliders and things on the planet// 
-            if (Physics.Raycast(myCamera.transform.position, myCamera.transform.forward, out hit, Mathf.Infinity, globeMask))
+            if(DistanceBetween(orbitPoint) > 1.5f && !Input.GetButton("Jump"))
             {
-                if (hit.collider.tag == "Globe")
-                {
-                    //Hit a planet. Switch your orbit point//
-                    orbitPoint = hit.collider.gameObject;
-
-                    //Ghost mode (A coroutine that coordinates smooth accelleration and deceleration towards planet)// 
-                    StartCoroutine(GhostMode());
-                }
+                transform.Translate(new Vector3(0, -hoverGravity * Time.deltaTime, 0));
             }
         }
-    }
-
-    public IEnumerator GhostMode()
-    {
-        //Was Grounded. Begin to Float.// 
-        if (GMD == GravityMode.Grounded)
-        {
-            GMD = GravityMode.Floating;
-
-            //Accellerate Towards Planet// 
-            currentOrbitGravity = 0;
-            float planetRadius = orbitPoint.transform.localScale.y;
-            float planetAtmosphere = orbitPoint.transform.localScale.y * 2.5f;
-
-            //Accelerate to maximum gravity//
-            while (Vector3.Distance(orbitPoint.transform.position, gameObject.transform.position) > (planetRadius + planetAtmosphere))
-            {
-                yield return new WaitForSeconds(.1f);
-                if (currentOrbitGravity < orbitGravity)
-                {
-                    currentOrbitGravity += (orbitGravity * 0.1f);
-                }
-            }
-
-            //Slow Down On Approach//
-            for (int i = 0; i < 20; i++)
-            {
-                if (Vector3.Distance(orbitPoint.transform.position, gameObject.transform.position) < (planetRadius + 2))
-                {
-                    break;
-                }
-                else
-                {
-                    yield return new WaitForSeconds(0.1f);
-                    currentOrbitGravity -= (orbitGravity * 0.05f);
-                }
-
-            }
-
-            //Begin Rotating// 
-            GMD = GravityMode.FloatToGround;
-            yield return new WaitForSeconds(3f);
-
-            //Grounded. Normal gravity takes over// 
-            GMD = GravityMode.Grounded;
-        }
+        //Move Toward New Planet// 
         else
         {
-            Debug.Log("Error, starting ghost mode not grounded!");
+            transform.Translate
+           (
+               (-targetDir.x * Time.deltaTime * orbitGravity),
+               (-targetDir.y * Time.deltaTime * orbitGravity),
+               (-targetDir.z * Time.deltaTime * orbitGravity), Space.World
+           );
         }
-        
+    }
+    public void ChangePlanet()
+    {
+        if(DistanceBetween(orbitPoint) > gravityLetoff && isGrounded == true)
+        {
+            orbitPoint = ClosestPlanet();
+            isGrounded = false; 
+        }
+    }
+    public void FeetToGround()
+    {
+        if(!isGrounded)
+        {
+            Vector3 targetDir = (gameObject.transform.position - orbitPoint.transform.position).normalized;
+            float distToSurface = DistanceBetween(orbitPoint);
+
+            if (distToSurface > 2 && distToSurface < 150)
+            {
+                gameObject.transform.rotation = Quaternion.Lerp(gameObject.transform.rotation, Quaternion.FromToRotation(gameObject.transform.up, targetDir) * gameObject.transform.rotation, 1f * Time.deltaTime);
+            }
+            else if(distToSurface < 2)
+            {
+                isGrounded = true;
+            }
+        }
     }
 
-    //Runtime Functions// 
-    private void Awake()
+    public GameObject ClosestPlanet()
     {
-        GMD = GravityMode.Grounded;
+        GameObject returnPlanet = null; 
+        float shortestDistance = Mathf.Infinity;
+
+        orbitPoint.gameObject.tag = "NotGlobe";
+        GameObject[] planets = GameObject.FindGameObjectsWithTag("Globe");
+        orbitPoint.gameObject.tag = "Globe"; 
+
+        foreach(GameObject obj in planets)
+        {
+            float distanceBetween = DistanceBetween(obj);
+
+            if (distanceBetween < shortestDistance)
+            {
+                    shortestDistance = distanceBetween;
+                    returnPlanet = obj;          
+            }
+        }
+
+        return returnPlanet; 
     }
+    public float DistanceBetween(GameObject planet)
+    {
+        float radius = planet.transform.localScale.y;
+        Vector3 outerPoint = planet.transform.position;
+        outerPoint += ((gameObject.transform.position - planet.transform.position).normalized) * radius;
+        return Vector3.Distance(outerPoint, gameObject.transform.position); 
+    }
+
     private void Update()
     {
         CameraRotation();
         ControllerMovement();
-        PlanetTransfer();
+        ChangePlanet();
+        FeetToGround(); 
         OrbitalPull();
     }
     private void FixedUpdate()
@@ -179,6 +154,7 @@ public class ControlFP : MonoBehaviour
         //Null out rigidbody physics//
         rb.velocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
+
     }
 }
 

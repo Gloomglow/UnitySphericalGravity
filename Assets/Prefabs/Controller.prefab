@@ -23,7 +23,7 @@ GameObject:
   - component: {fileID: 23881139909390780}
   - component: {fileID: 136182214497792962}
   - component: {fileID: 114788405543714458}
-  - component: {fileID: 54181012259809252}
+  - component: {fileID: 54063526371852012}
   m_Layer: 0
   m_Name: Controller
   m_TagString: Player
@@ -56,8 +56,8 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1085535776920980}
-  m_LocalRotation: {x: -0, y: -0.6851986, z: -0, w: 0.7283563}
-  m_LocalPosition: {x: 0, y: 32, z: 0}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 87.3, y: 62.3, z: 131.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4763133792662202}
@@ -155,7 +155,7 @@ MeshFilter:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1085535776920980}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
---- !u!54 &54181012259809252
+--- !u!54 &54063526371852012
 Rigidbody:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
@@ -164,7 +164,7 @@ Rigidbody:
   serializedVersion: 2
   m_Mass: 1
   m_Drag: 0
-  m_AngularDrag: 0.05
+  m_AngularDrag: 0
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -203,16 +203,13 @@ MonoBehaviour:
   moveSpeed: 3
   sprintSpeed: 6
   jumpForce: 5
-  hoverGravity: 5
+  isGrounded: 1
+  hoverGravity: 30
   orbitGravity: 30
-  col: {fileID: 136182214497792962}
-  rb: {fileID: 54181012259809252}
+  col: {fileID: 0}
+  rb: {fileID: 0}
   myCamera: {fileID: 1914837500764818}
   orbitPoint: {fileID: 0}
-  globeMask:
-    serializedVersion: 2
-    m_Bits: 512
-  GMD: 0
 --- !u!124 &124427452852705866
 Behaviour:
   m_ObjectHideFlags: 1

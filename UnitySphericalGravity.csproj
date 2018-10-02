@@ -351,7 +351,6 @@
     <Compile Include="Assets\Imports\PostProcessing\Runtime\Utils\MaterialFactory.cs" />
     <Compile Include="Assets\Imports\PostProcessing\Runtime\Utils\RenderTextureFactory.cs" />
     <Compile Include="Assets\Scripts\ControlFP.cs" />
-    <Compile Include="Assets\Scripts\Examples.cs" />
     <Compile Include="Assets\Scripts\Spawner.cs" />
   </ItemGroup>
   <ItemGroup>

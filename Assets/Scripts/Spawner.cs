@@ -6,12 +6,11 @@ public class Spawner : MonoBehaviour
 {
     public GameObject[] spawnPrefabs;
     public GameObject[] activeGlobes;
-    public int initialSpawnObjects; 
+    public int initialSpawnCount;
 
     private void Awake()
     {
-        //Spawn objects//
-        for(int i = 0; i < initialSpawnObjects; i++)
+        for(int i = 0; i < initialSpawnCount; i++)
         {
             SpawnPrefab();
         }
@@ -22,12 +21,12 @@ public class Spawner : MonoBehaviour
         //Pick Random Planet & Object//
         int prefabIND = Random.Range(0, spawnPrefabs.Length);
         int globeIND = Random.Range(0, activeGlobes.Length); 
-
-        //Random Outward Direction//
-        Vector3 randomDir = Random.onUnitSphere;
         
         //Starting Point (Planet Center)//
         Vector3 spawnPoint = activeGlobes[globeIND].transform.position;
+
+        //Random Outward Direction//
+        Vector3 randomDir = Random.onUnitSphere;
 
         //Modify Point to edge of planet// 
         spawnPoint += (randomDir * activeGlobes[globeIND].transform.localScale.y); 
@@ -42,7 +41,4 @@ public class Spawner : MonoBehaviour
         //Parent to Globe//
         addSpawn.transform.parent = activeGlobes[globeIND].transform;
     }
-
-
-
 }
